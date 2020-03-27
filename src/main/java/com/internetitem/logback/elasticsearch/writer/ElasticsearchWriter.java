@@ -73,10 +73,10 @@ public class ElasticsearchWriter implements SafeWriter {
 				settings.getAuthentication().addAuth(urlConnection, body);
 			}
 
-			Writer writer = new OutputStreamWriter(urlConnection.getOutputStream(), StandardCharsets.UTF_8);
-			writer.write(body);
-			writer.flush();
-			writer.close();
+			try (Writer writer = new OutputStreamWriter(urlConnection.getOutputStream(), StandardCharsets.UTF_8)) {
+				writer.write(body);
+				writer.flush();
+			}
 
 			int rc = urlConnection.getResponseCode();
 			if (rc != 200) {
@@ -113,12 +113,13 @@ public class ElasticsearchWriter implements SafeWriter {
 				return "<no data>";
 			}
 
-			StringBuilder builder = new StringBuilder();
-			InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-			char[] buf = new char[2048];
-			int numRead;
-			while ((numRead = reader.read(buf)) > 0) {
-				builder.append(buf, 0, numRead);
+			StringBuilder builder = new StringBuilder(2048);
+			try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+				char[] buf = new char[2048];
+				int numRead;
+				while ((numRead = reader.read(buf)) > 0) {
+					builder.append(buf, 0, numRead);
+				}
 			}
 			return builder.toString();
 		} catch (Exception e) {
