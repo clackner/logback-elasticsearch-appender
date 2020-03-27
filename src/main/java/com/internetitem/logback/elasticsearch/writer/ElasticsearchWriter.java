@@ -79,6 +79,10 @@ public class ElasticsearchWriter implements SafeWriter {
 
 			int rc = urlConnection.getResponseCode();
 			if (rc != 200) {
+				// Reset our send buffer if Elasticsearch responded with an error. There is no point in retrying, as the
+				// followup requests would very likely be rejected too.
+				resetBuffer();
+
 				String data = slurpErrors(urlConnection);
 				throw new IOException("Got response code [" + rc + "] from server with data " + data);
 			}
@@ -86,6 +90,10 @@ public class ElasticsearchWriter implements SafeWriter {
 			urlConnection.disconnect();
 		}
 
+		resetBuffer();
+	}
+
+	private void resetBuffer() {
 		sendBuffer.setLength(0);
 		if (bufferExceeded) {
 			errorReporter.logInfo("Send queue cleared - log messages will no longer be lost");
