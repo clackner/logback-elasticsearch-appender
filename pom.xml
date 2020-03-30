@@ -4,12 +4,12 @@
 
     <groupId>com.internetitem</groupId>
     <artifactId>logback-elasticsearch-appender</artifactId>
-    <version>1.6</version>
+    <version>1.6-eocs</version>
     <packaging>jar</packaging>
 
     <name>Logback Elasticsearch Appender</name>
     <description>Send log events directly from Logback to Elasticsearch</description>
-    <url>https://github.com/internetitem/logback-elasticsearch-appender</url>
+    <url>https://github.com/Eurofunk/logback-elasticsearch-appender</url>
 
     <licenses>
         <license>
