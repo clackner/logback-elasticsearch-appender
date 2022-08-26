@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractElasticsearchPublisher<T> implements Runnable {
@@ -175,6 +176,7 @@ public abstract class AbstractElasticsearchPublisher<T> implements Runnable {
 				if (type != null) {
 					gen.writeObjectField("_type", type);
 				}
+				gen.writeObjectField("_id", UUID.randomUUID().toString());
 			gen.writeEndObject();
 		gen.writeEndObject();
 	}
