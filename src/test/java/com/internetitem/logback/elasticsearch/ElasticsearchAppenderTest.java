@@ -6,24 +6,23 @@ import ch.qos.logback.core.Context;
 import com.internetitem.logback.elasticsearch.config.ElasticsearchProperties;
 import com.internetitem.logback.elasticsearch.config.Settings;
 import com.internetitem.logback.elasticsearch.util.ErrorReporter;
-import org.hamcrest.core.IsInstanceOf;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ElasticsearchAppenderTest {
+@ExtendWith(MockitoExtension.class)
+class ElasticsearchAppenderTest {
 
 
     @Mock
@@ -41,8 +40,8 @@ public class ElasticsearchAppenderTest {
     private boolean errorReporterSet = false;
     private AbstractElasticsearchAppender appender;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
 
         appender = new ElasticsearchAppender() {
             @Override
@@ -60,16 +59,15 @@ public class ElasticsearchAppenderTest {
     }
 
     @Test
-    public void should_set_the_collaborators_when_started() {
+    void should_set_the_collaborators_when_started() {
         appender.start();
 
-
-        assertThat(publisherSet, is(true));
-        assertThat(errorReporterSet, is(true));
+        assertTrue(publisherSet);
+        assertTrue(errorReporterSet);
     }
 
     @Test
-    public void should_throw_error_when_publisher_setup_fails_during_startup() {
+    void should_throw_error_when_publisher_setup_fails_during_startup() {
         ElasticsearchAppender appender = new ElasticsearchAppender() {
             @Override
             protected ClassicElasticsearchPublisher buildElasticsearchPublisher() throws IOException {
@@ -80,15 +78,15 @@ public class ElasticsearchAppenderTest {
         try {
             appender.start();
         } catch (Exception e) {
-            assertThat(e, IsInstanceOf.instanceOf(RuntimeException.class));
-            assertThat(e.getMessage(), is("java.io.IOException: Failed to start Publisher"));
+            assertTrue(RuntimeException.class.isInstance(e));
+            assertEquals("java.io.IOException: Failed to start Publisher", e.getMessage());
         }
 
 
     }
 
     @Test
-    public void should_not_publish_events_when_logger_set() {
+    void should_not_publish_events_when_logger_set() {
         String loggerName = "elastic-debug-log";
         ILoggingEvent eventToLog = mock(ILoggingEvent.class);
         given(eventToLog.getLoggerName()).willReturn(loggerName);
@@ -100,12 +98,12 @@ public class ElasticsearchAppenderTest {
 
         appender.append(eventToLog);
 
-        verifyZeroInteractions(elasticsearchPublisher);
+        verifyNoInteractions(elasticsearchPublisher);
     }
 
 
     @Test
-    public void should_not_publish_events_when_errorlogger_set() {
+    void should_not_publish_events_when_errorlogger_set() {
         String errorLoggerName = "elastic-error-log";
         ILoggingEvent eventToLog = mock(ILoggingEvent.class);
         given(eventToLog.getLoggerName()).willReturn(errorLoggerName);
@@ -117,12 +115,12 @@ public class ElasticsearchAppenderTest {
 
         appender.append(eventToLog);
 
-        verifyZeroInteractions(elasticsearchPublisher);
+        verifyNoInteractions(elasticsearchPublisher);
     }
 
 
     @Test
-    public void should_publish_events_when_loggername_is_null() {
+    void should_publish_events_when_loggername_is_null() {
         ILoggingEvent eventToPublish = mock(ILoggingEvent.class);
         given(eventToPublish.getLoggerName()).willReturn(null);
         String errorLoggerName = "es-error";
@@ -138,7 +136,7 @@ public class ElasticsearchAppenderTest {
 
 
     @Test
-    public void should_publish_events_when_loggername_is_different_from_the_elasticsearch_loggers() {
+    void should_publish_events_when_loggername_is_different_from_the_elasticsearch_loggers() {
         ILoggingEvent eventToPublish = mock(ILoggingEvent.class);
         String differentLoggerName = "different-logger";
         String errorLoggerName = "es-errors";
@@ -155,8 +153,8 @@ public class ElasticsearchAppenderTest {
     }
 
     @Test
-    public void should_create_error_reporter_with_same_context() {
-        ElasticsearchAppender appender = new ElasticsearchAppender(){
+    void should_create_error_reporter_with_same_context() {
+        ElasticsearchAppender appender = new ElasticsearchAppender() {
             @Override
             public Context getContext() {
                 return mockedContext;
@@ -165,12 +163,12 @@ public class ElasticsearchAppenderTest {
 
         ErrorReporter errorReporter = appender.getErrorReporter();
 
-        assertThat(errorReporter.getContext(), is(mockedContext));
+        assertEquals(mockedContext, errorReporter.getContext());
     }
 
 
     @Test
-    public void should_delegate_setters_to_settings() throws MalformedURLException {
+    void should_delegate_setters_to_settings() throws MalformedURLException {
         ElasticsearchAppender appender = new ElasticsearchAppender(settings);
         boolean includeCallerData = false;
         boolean errorsToStderr = false;
@@ -219,6 +217,4 @@ public class ElasticsearchAppenderTest {
         verify(settings, times(1)).setRawJsonMessage(rawJsonMessage);
         verify(settings, times(1)).setIncludeMdc(includeMdc);
     }
-
-
 }
