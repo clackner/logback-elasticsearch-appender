@@ -110,8 +110,7 @@ public class ElasticsearchWriter implements SafeWriter {
 	}
 
 	private static String slurpErrors(HttpURLConnection urlConnection) {
-		try {
-			InputStream stream = urlConnection.getErrorStream();
+		try (InputStream stream = urlConnection.getErrorStream()) {
 			if (stream == null) {
 				return "<no data>";
 			}
