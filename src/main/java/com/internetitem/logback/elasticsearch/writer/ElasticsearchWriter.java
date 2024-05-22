@@ -1,19 +1,19 @@
 package com.internetitem.logback.elasticsearch.writer;
 
-import java.io.IOException;
+import com.internetitem.logback.elasticsearch.config.HttpRequestHeader;
+import com.internetitem.logback.elasticsearch.config.HttpRequestHeaders;
+import com.internetitem.logback.elasticsearch.config.Settings;
+import com.internetitem.logback.elasticsearch.util.ErrorReporter;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
-
-import com.internetitem.logback.elasticsearch.config.HttpRequestHeader;
-import com.internetitem.logback.elasticsearch.config.HttpRequestHeaders;
-import com.internetitem.logback.elasticsearch.config.Settings;
-import com.internetitem.logback.elasticsearch.util.ErrorReporter;
 
 public class ElasticsearchWriter implements SafeWriter {
 
@@ -29,8 +29,8 @@ public class ElasticsearchWriter implements SafeWriter {
 		this.errorReporter = errorReporter;
 		this.settings = settings;
 		this.headerList = headers != null && headers.getHeaders() != null
-			? headers.getHeaders()
-			: Collections.<HttpRequestHeader>emptyList();
+				? headers.getHeaders()
+				: Collections.<HttpRequestHeader>emptyList();
 
 		this.sendBuffer = new StringBuilder();
 	}
@@ -53,7 +53,7 @@ public class ElasticsearchWriter implements SafeWriter {
 			return;
 		}
 
-		HttpURLConnection urlConnection = (HttpURLConnection)(settings.getUrl().openConnection());
+		HttpURLConnection urlConnection = (HttpURLConnection) (settings.getUrl().openConnection());
 		try {
 			urlConnection.setDoInput(true);
 			urlConnection.setDoOutput(true);
@@ -64,7 +64,7 @@ public class ElasticsearchWriter implements SafeWriter {
 			String body = sendBuffer.toString();
 
 			if (!headerList.isEmpty()) {
-				for(HttpRequestHeader header: headerList) {
+				for (HttpRequestHeader header : headerList) {
 					urlConnection.setRequestProperty(header.getName(), header.getValue());
 				}
 			}
@@ -79,15 +79,15 @@ public class ElasticsearchWriter implements SafeWriter {
 			}
 
 			int rc = urlConnection.getResponseCode();
-			if (rc != 200) {
-				if (bufferExceeded)
-				{
-					// Reset our send buffer if Elasticsearch responded with an error. There is no point in retrying, as the
-					// followup requests would very likely be rejected too.
+			// response code is not within range 200-299
+			if (!isSuccessful(rc)) {
+				if (bufferExceeded || !canBeRetried(rc)) {
+					// response code indicates that retrying won't resolve the issue.
+					// in order to prevent any endless loop of retries happening, we reset the buffer immediately.
 					resetBuffer();
 				}
 
-				String data = slurpErrors(urlConnection);
+				final String data = slurpErrors(urlConnection);
 				throw new IOException("Got response code [" + rc + "] from server with data " + data);
 			}
 		} finally {
@@ -106,7 +106,7 @@ public class ElasticsearchWriter implements SafeWriter {
 	}
 
 	public boolean hasPendingData() {
-		return sendBuffer.length() != 0;
+		return !sendBuffer.isEmpty();
 	}
 
 	private static String slurpErrors(HttpURLConnection urlConnection) {
@@ -129,4 +129,11 @@ public class ElasticsearchWriter implements SafeWriter {
 		}
 	}
 
+	private static boolean isSuccessful(final int httpStatus) {
+		return httpStatus >= 200 && httpStatus < 300;
+	}
+
+	private static boolean canBeRetried(final int httpStatus) {
+		return httpStatus == 408 || httpStatus == 429 || httpStatus < 400 || httpStatus >= 500;
+	}
 }
