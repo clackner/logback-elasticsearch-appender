@@ -109,6 +109,11 @@ public class ElasticsearchWriter implements SafeWriter {
 		return !sendBuffer.isEmpty();
 	}
 
+	@Override
+	public void reset() {
+		resetBuffer();
+	}
+
 	private static String slurpErrors(HttpURLConnection urlConnection) {
 		try (InputStream stream = urlConnection.getErrorStream()) {
 			if (stream == null) {
