@@ -118,13 +118,29 @@ public abstract class AbstractElasticsearchPublisher<T> implements Runnable {
 		while (true) {
 			try {
 				Thread.sleep(settings.getSleepTime());
+				// reset the internal state due to retry-count being exceeded
+				if (currentTry > maxRetries) {
+					outputAggregator.reset();
+					currentTry = 1;
+				}
+
+				// in case the retry-count hasn't been exceeded yet, we try again (without reading in new events to
+				// prevent loss of further logging events).
+				if (currentTry > 1) {
+					if (outputAggregator.sendData()) {
+						currentTry = 1;
+					} else {
+						currentTry++;
+					}
+
+					continue;
+				}
 
 				List<T> eventsCopy = null;
 				synchronized (lock) {
 					if (!events.isEmpty()) {
 						eventsCopy = events;
 						events = new ArrayList<T>();
-						currentTry = 1;
 					}
 
 					if (eventsCopy == null) {
@@ -147,7 +163,9 @@ public abstract class AbstractElasticsearchPublisher<T> implements Runnable {
 					serializeEvents(jsonGenerator, eventsCopy, propertyList);
 				}
 
-				if (!outputAggregator.sendData()) {
+				if (outputAggregator.sendData()) {
+					currentTry = 1;
+				} else {
 					currentTry++;
 				}
 			} catch (Exception e) {

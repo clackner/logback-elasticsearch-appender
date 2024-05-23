@@ -63,6 +63,12 @@ public class ElasticsearchOutputAggregator extends Writer {
 		return success;
 	}
 
+	public void reset() {
+		for (SafeWriter writer : writers) {
+			writer.reset();
+		}
+	}
+
 	@Override
 	public void flush() throws IOException {
 		// No-op
